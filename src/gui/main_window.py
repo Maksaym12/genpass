@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.password_generator = PasswordGenerator()
         self.dragPos = None
-        self.strength_label = QLabel("Сложность: 0%")
+        self.strength_label = QLabel("Примерная сложность: 0%")
         self.title_bar = None
         self.typewriter_timer = QTimer()
         self.typewriter_timer.timeout.connect(self._update_typewriter)
@@ -33,39 +33,49 @@ class MainWindow(QMainWindow):
         self.initUI()
         
     def update_strength_indicator(self):
-        enabled_count = sum(1 for toggle in self.toggles.values() if toggle._enabled)
+
         length = self.length_slider.value()
+        use_upper = self.toggles['upper']._enabled
+        use_lower = self.toggles['lower']._enabled
+        use_digits = self.toggles['digits']._enabled
+        use_special = self.toggles['special']._enabled
         
         self.combination_calculator.update_combinations(
             length=length,
-            use_upper=self.toggles['upper']._enabled,
-            use_lower=self.toggles['lower']._enabled,
-            use_digits=self.toggles['digits']._enabled,
-            use_special=self.toggles['special']._enabled
+            use_upper=use_upper,
+            use_lower=use_lower,
+            use_digits=use_digits,
+            use_special=use_special
         )
         
-        if enabled_count == 0:
+        if not any([use_upper, use_lower, use_digits, use_special]):
             strength = 0
+            self.strength_label.setText("Сложность: 0%")
         else:
-            strength = enabled_count * 20
+            test_password = ""
+            if use_upper:
+                test_password += "A"
+            if use_lower:
+                test_password += "a"
+            if use_digits:
+                test_password += "1"
+            if use_special:
+                test_password += "!"
             
-            if length >= 12:
-                strength += 20
-            elif length >= 8:
-                strength += 15
-            elif length >= 6:
-                strength += 5
-                
-            if enabled_count >= 2:
-                strength += 10
-            if enabled_count >= 3:
-                strength += 10
-            if enabled_count == 4:
-                strength += 10
-                
-            strength = min(100, strength)   
+            remaining_length = length - len(test_password)
+            if remaining_length > 0:
+                if use_upper:
+                    test_password += "A" * remaining_length
+                elif use_lower:
+                    test_password += "a" * remaining_length
+                elif use_digits:
+                    test_password += "1" * remaining_length
+                elif use_special:
+                    test_password += "!" * remaining_length
             
-        self.strength_label.setText(f"Сложность: {strength}%")
+            strength = self.password_generator.check_strength(test_password)
+            
+            self.strength_label.setText(f"Примерная сложность: {strength}%")
         
         if strength >= 75:
             color = SUCCESS_COLOR
@@ -328,7 +338,25 @@ class MainWindow(QMainWindow):
             
             self.typewriter_timer.start(50)
             
-            self.update_strength_indicator()
+            strength = self.password_generator.check_strength(password)
+            
+            self.strength_label.setText(f"Фактическая сложность: {strength}%")
+            
+            if strength >= 75:
+                color = SUCCESS_COLOR
+            elif strength >= 50:
+                color = WARNING_COLOR
+            else:
+                color = ERROR_COLOR
+                
+            self.strength_label.setStyleSheet(f"""
+                color: {color};
+                font-family: {FONT_FAMILY};
+                font-size: {FONT_SIZE_SMALL}px;
+                font-weight: bold;
+            """)
+            
+            QTimer.singleShot(5000, self.update_strength_indicator)
             
         except ValueError:
             self.password_field.setStyleSheet(f"""
@@ -382,6 +410,5 @@ class MainWindow(QMainWindow):
             event.accept()
 
     def show_master_dialog(self):
-        """Показывает диалог генерации пароля по мастер-паролю"""
         dialog = MasterPasswordDialog(self)
         dialog.exec_() 

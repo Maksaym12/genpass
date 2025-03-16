@@ -6,8 +6,10 @@ from PyQt5.QtGui import QIcon
 import os
 import sys
 import hashlib
-import random
+import secrets
 import string
+import base64
+from hashlib import pbkdf2_hmac
 from src.utils.styles import *
 from src.gui.widgets.custom_widgets import CloseButton
 
@@ -115,13 +117,13 @@ class MasterPasswordHelpDialog(QDialog):
              "Домен - это название сайта или сервиса, для которого вы хотите сгенерировать пароль. Например: 'google', 'facebook', 'twitter'. Важно использовать одинаковое название домена при повторной генерации пароля."),
             
             ("3. Как работает генерация?",
-             "1. Мы объединяем ваш мастер-пароль и домен\n2. Создаем уникальный хеш SHA-256\n3. Берем первые 8 символов из хеша\n4. Добавляем специальный символ (!@#)\n5. Добавляем случайную цифру\n6. Добавляем 2 заглавные буквы\n\nПример:\nМастер-пароль: MyPassword123\nДомен: google\nРезультат: 8f4e2a1b!3KL"),
+             "1. Мы объединяем ваш мастер-пароль и домен\n2. Используем алгоритм PBKDF2 для создания криптографически стойкого ключа\n3. На основе этого ключа генерируем 16-символьный пароль, включающий:\n   • 4 заглавные буквы\n   • 4 строчные буквы\n   • 4 цифры\n   • 4 специальных символа\n\nПример:\nМастер-пароль: MyPassword123\nДомен: google\nРезультат: Xb7!Kd9@Pf3#Rz5$"),
             
             ("4. Преимущества этого метода",
-             "• Безопасность: все вычисления происходят локально на вашем устройстве\n• Повторяемость: одинаковые мастер-пароль и домен всегда дают одинаковый результат\n• Уникальность: каждый сайт получает свой уникальный пароль\n• Надежность: генерируются сложные пароли, соответствующие требованиям безопасности"),
+             "• Безопасность: используется криптографически стойкий алгоритм PBKDF2\n• Повторяемость: одинаковые мастер-пароль и домен всегда дают одинаковый результат\n• Уникальность: каждый сайт получает свой уникальный пароль\n• Надежность: генерируются сложные пароли, соответствующие всем требованиям безопасности\n• Локальность: все вычисления происходят только на вашем устройстве"),
             
             ("5. Важные рекомендации",
-             "• Никогда не используйте простые мастер-пароли\n• Запомните или надежно сохраните свой мастер-пароль\n• Используйте точные названия доменов\n• Регулярно меняйте мастер-пароль\n• Не сообщайте никому свой мастер-пароль")
+             "• Используйте сложные мастер-пароли (минимум 12 символов)\n• Запомните или надежно сохраните свой мастер-пароль\n• Используйте точные названия доменов при повторной генерации\n• Периодически меняйте мастер-пароль\n• Никогда не сообщайте никому свой мастер-пароль")
         ]
         
         for title, description in help_text:
@@ -182,7 +184,7 @@ class MasterPasswordDialog(QDialog):
         super().__init__(parent)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setFixedSize(500, 440)  # Уменьшил высоту окна
+        self.setFixedSize(500, 440) 
         self.dragPos = None
         self.title_bar = None
         self.initUI()
@@ -192,7 +194,6 @@ class MasterPasswordDialog(QDialog):
         layout.setContentsMargins(7, 7, 7, 7)
         layout.setSpacing(0)
         
-        # Основная рамка
         main_frame = QWidget()
         main_frame.setStyleSheet(f"""
             QWidget {{
@@ -204,7 +205,6 @@ class MasterPasswordDialog(QDialog):
         frame_layout.setContentsMargins(20, 15, 20, 20)
         frame_layout.setSpacing(20)
         
-        # Заголовок
         title_bar = QWidget()
         self.title_bar = title_bar
         title_layout = QHBoxLayout(title_bar)
@@ -256,7 +256,6 @@ class MasterPasswordDialog(QDialog):
         
         frame_layout.addWidget(title_bar)
         
-        # Поле для мастер-пароля
         master_label = QLabel("Мастер-пароль:")
         master_label.setStyleSheet(f"""
             color: {TEXT_COLOR};
@@ -267,7 +266,6 @@ class MasterPasswordDialog(QDialog):
         """)
         frame_layout.addWidget(master_label)
         
-        # Контейнер для поля ввода и кнопки показа пароля
         master_container = QWidget()
         master_layout = QHBoxLayout(master_container)
         master_layout.setContentsMargins(0, 0, 0, 0)
@@ -290,7 +288,6 @@ class MasterPasswordDialog(QDialog):
             }}
         """)
         
-        # Кнопка показа пароля
         show_password_button = QPushButton()
         show_password_button.setFixedSize(45, 45)
         show_password_button.setCursor(Qt.PointingHandCursor)
@@ -308,13 +305,11 @@ class MasterPasswordDialog(QDialog):
             }}
         """)
         
-        # Иконка для кнопки показа пароля
         eye_icon_path = get_resource_path(os.path.join("src", "assets", "icons", "eye.png"))
         if os.path.exists(eye_icon_path):
             show_password_button.setIcon(QIcon(eye_icon_path))
             show_password_button.setIconSize(QSize(22, 22))
         
-        # Обработчик нажатия на кнопку показа пароля
         def toggle_password_visibility():
             if self.master_input.echoMode() == QLineEdit.Password:
                 self.master_input.setEchoMode(QLineEdit.Normal)
@@ -328,7 +323,6 @@ class MasterPasswordDialog(QDialog):
         
         frame_layout.addWidget(master_container)
         
-        # Поле для домена
         domain_label = QLabel("Домен (например, google, binance, etc.):")
         domain_label.setStyleSheet(f"""
             color: {TEXT_COLOR};
@@ -354,7 +348,6 @@ class MasterPasswordDialog(QDialog):
         """)
         frame_layout.addWidget(self.domain_input)
         
-        # Результат
         result_container = QWidget()
         result_layout = QHBoxLayout(result_container)
         result_layout.setContentsMargins(0, 0, 0, 0)
@@ -376,7 +369,6 @@ class MasterPasswordDialog(QDialog):
         """)
         self.result_label.setAlignment(Qt.AlignCenter)
         
-        # Кнопка копирования
         copy_button = QPushButton()
         copy_button.setFixedSize(50, 52)
         copy_button.setCursor(Qt.PointingHandCursor)
@@ -395,7 +387,6 @@ class MasterPasswordDialog(QDialog):
             }}
         """)
         
-        # Иконка копирования
         copy_icon_path = get_resource_path(os.path.join("src", "assets", "icons", "copy.png"))
         if os.path.exists(copy_icon_path):
             copy_button.setIcon(QIcon(copy_icon_path))
@@ -406,7 +397,6 @@ class MasterPasswordDialog(QDialog):
         
         frame_layout.addWidget(result_container)
         
-        # Кнопка генерации
         generate_button = QPushButton("СГЕНЕРИРОВАТЬ")
         generate_button.setCursor(Qt.PointingHandCursor)
         generate_button.clicked.connect(self.generate_password)
@@ -438,15 +428,49 @@ class MasterPasswordDialog(QDialog):
             
         # Комбинируем мастер-пароль и домен
         combined = f"{master}:{domain}"
-        # Создаем SHA-256 хеш
-        hash_object = hashlib.sha256(combined.encode())
-        hash_hex = hash_object.hexdigest()
         
-        # Берем первые 12 символов и добавляем специальные символы
-        password = hash_hex[:8]
-        password += "!@#"[hash_hex.count('a') % 3]  # Добавляем спецсимвол
-        password += str(hash_hex.count('e') % 10)   # Добавляем цифру
-        password += hash_hex[8:10].upper()          # Добавляем заглавные буквы
+        salt = domain.encode()
+        key = pbkdf2_hmac(
+            'sha256',
+            master.encode(),
+            salt,
+            iterations=100000,
+            dklen=32
+        )
+        
+        key_hex = base64.b16encode(key).decode().lower()
+        
+        uppercase = string.ascii_uppercase
+        lowercase = string.ascii_lowercase
+        digits = string.digits
+        special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        
+        password = ""
+        
+        for i in range(0, 8, 2):
+            idx = int(key_hex[i:i+2], 16) % len(uppercase)
+            password += uppercase[idx]
+        
+        for i in range(8, 16, 2):
+            idx = int(key_hex[i:i+2], 16) % len(lowercase)
+            password += lowercase[idx]
+        
+        for i in range(16, 24, 2):
+            idx = int(key_hex[i:i+2], 16) % len(digits)
+            password += digits[idx]
+        
+        for i in range(24, 32, 2):
+            idx = int(key_hex[i:i+2], 16) % len(special_chars)
+            password += special_chars[idx]
+        
+        password_chars = list(password)
+        for i in range(len(password_chars) - 1):
+            # Используем каждый байт ключа для определения индекса обмена
+            # Важно: j всегда > i, чтобы обеспечить детерминированность
+            j = i + 1 + (int(key_hex[i % 16], 16) % (len(password_chars) - i - 1))
+            password_chars[i], password_chars[j] = password_chars[j], password_chars[i]
+        
+        password = ''.join(password_chars)
         
         self.result_label.setText(f"Ваш пароль: {password}")
         
