@@ -5,12 +5,7 @@ GenPass - это современное приложение для создан
 ## 📸 Скриншоты
 
 <p align="center">
-  <img src="screenshots/1.png" width="48%" alt="Главное окно"/>
-  <img src="screenshots/2.png" width="48%" alt="Мастер-пароль"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/3.png" width="70%" alt="Калькулятор комбинаций"/>
+  <img src="screenshots/1.png" width="80%" alt="Главное окно GenPass"/>
 </p>
 
 ## ✨ Основные возможности
