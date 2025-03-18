@@ -12,7 +12,6 @@ GenPass - это современное приложение для создан
 
 <p align="center">
   <img src="screenshots/1.png" width="48%" alt="Главное окно"/>
-  <img src="screenshots/2.png" width="48%" alt="Мастер-пароль"/>
 </p>
 
 ## ✨ Основные возможности
