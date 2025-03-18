@@ -34,14 +34,22 @@ class AnimatedToggle(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         
         painter.setPen(Qt.NoPen)
-        if self._enabled:
+        
+        if not self.isEnabled():
+            painter.setBrush(QColor(120, 120, 120, 150))
+        elif self._enabled:
             painter.setBrush(QColor(ACCENT_COLOR))
         else:
             painter.setBrush(QColor(BUTTON_COLOR))
-        painter.drawRoundedRect(0, 0, self.width(), self.height(), 13, 13)
+            
+        painter.drawRoundedRect(0, 0, self.width(), self.height(), 14, 14)
         
-        painter.setBrush(QColor(TEXT_COLOR))
-        circle_size = 20
+        if not self.isEnabled():
+            painter.setBrush(QColor(200, 200, 200, 150))
+        else:
+            painter.setBrush(QColor(TEXT_COLOR))
+            
+        circle_size = 22
         y_pos = (self.height() - circle_size) // 2
         painter.drawEllipse(int(self.circle_position), y_pos, circle_size, circle_size)
 

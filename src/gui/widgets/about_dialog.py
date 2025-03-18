@@ -109,7 +109,7 @@ class AboutDialog(QDialog):
         logo_container.addWidget(logo)
         logo_container.addStretch()
         
-        version = QLabel("GenPass v.1.0.2")
+        version = QLabel("GenPass v.1.0.4")
         version.setStyleSheet(f"""
             color: {WARNING_COLOR};
             font-family: {FONT_FAMILY};

@@ -2,12 +2,24 @@ import os
 from PIL import Image
 
 def convert_icons():
-    icons = ['pass_logo.png', 'copy.png', 'create_btn.png', 'eye.png', 
-             'password_generator.png', 'master_password.png']
-    icons_dir = os.path.join("src", "assets", "icons")
+    # Получаем путь к корневой директории проекта (на один уровень выше директории scripts)
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    icons = [
+        'pass_logo.png', 'copy.png', 'create_btn.png', 'eye.png', 
+        'password_generator.png', 'master_password.png', 'settings_icon.png',
+        'uuid_icon.png', 'exit_icon.png', 'info_icon.png', 'lock.png',
+        'save_icon.png'
+    ]
+    
+    # Абсолютный путь к директории с иконками
+    icons_dir = os.path.join(root_dir, "src", "assets", "icons")
+    
+    print(f"Путь к директории с иконками: {icons_dir}")
     
     if not os.path.exists(icons_dir):
-        os.makedirs(icons_dir)
+        print(f"Директория {icons_dir} не существует! Создаем...")
+        os.makedirs(icons_dir, exist_ok=True)
     
     success = True
     for icon in icons:
@@ -25,12 +37,13 @@ def convert_icons():
                 print(f"Ошибка при конвертации {icon}: {e}")
                 success = False
         else:
-            print(f"Файл иконки {png_path} не найден!")
+            print(f"Файл иконки не найден: {png_path}")
             success = False
             
     return success
 
 if __name__ == "__main__":
+    print("Начинаем конвертацию иконок из PNG в ICO формат...")
     if convert_icons():
         print("\nВсе иконки успешно конвертированы!")
     else:

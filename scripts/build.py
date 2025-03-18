@@ -2,11 +2,31 @@ import os
 import shutil
 import subprocess
 import sys
+import re
 from pathlib import Path
 
 def get_pyqt_path():
     import PyQt5
     return os.path.dirname(PyQt5.__file__)
+
+def get_app_version():
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    about_dialog_path = os.path.join(root_dir, "src", "gui", "widgets", "about_dialog.py")
+    
+    try:
+        with open(about_dialog_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+            
+        # Ищем строку с версией
+        version_match = re.search(r'version\s*=\s*QLabel\("GenPass\s+v\.?([0-9.]+)', content)
+        if version_match:
+            return version_match.group(1)
+        else:
+            print("Предупреждение: Версия не найдена в about_dialog.py, используем версию по умолчанию.")
+            return "1.0.0"
+    except Exception as e:
+        print(f"Ошибка при чтении версии из about_dialog.py: {e}")
+        return "1.0.0"
 
 def clean_build():
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +46,11 @@ def clean_build():
 def build_exe(arch):
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    output_name = f"GenPass_{arch}"
+    # Получаем версию приложения
+    version = get_app_version()
+    
+    # Формируем имя выходного файла с версией
+    output_name = f"GenPass_v{version}_{arch}"
     
     icon_path = os.path.join(root_dir, "src", "assets", "icons", "pass_logo.ico")
     
@@ -75,6 +99,7 @@ def build_exe(arch):
     ]
     
     try:
+        print(f"Сборка версии {version} для архитектуры {arch}...")
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         print(result.stdout)
         if result.stderr:
@@ -88,6 +113,9 @@ def build_exe(arch):
 
 def main():
     clean_build()
+    
+    version = get_app_version()
+    print(f"\nНачинаем сборку GenPass версии {version}")
     
     architectures = ['x86', 'x64']
     
